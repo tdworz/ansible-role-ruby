@@ -1,0 +1,4 @@
+---
+
+ruby_install_method: 'repos'
+ruby_version: 'stable'

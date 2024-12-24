@@ -1,0 +1,63 @@
+---
+
+- name: Install prerequisites
+  ansible.builtin.dnf:
+    name:
+      - python3-dnf
+    state: present
+  become: true
+
+- name: Get base Ruby package information
+  ansible.builtin.command: dnf info ruby
+  register: dnf_ruby_base_package_info
+  changed_when: false
+
+- name: Set base Ruby version
+  ansible.builtin.set_fact:
+    available_ruby_base_version: "{{ dnf_ruby_base_package_info.stdout |
+                                     regex_search('Version\\s+:\\s+(\\d+\\.\\d+)', '\\1') |
+                                     first }}"
+
+- name: Get available Ruby module streams
+  ansible.builtin.command: dnf module list ruby
+  register: dnf_ruby_module_streams_list
+  changed_when: false
+
+- name: Set available_ruby_stream_versions
+  ansible.builtin.set_fact:
+    available_ruby_stream_versions: "{{ dnf_ruby_module_streams_list.stdout_lines |
+                                        select('match', '^ruby\\s+\\d+\\.\\d+.*$') |
+                                        map('regex_replace', '^ruby\\s+(\\d+\\.\\d+).*$', '\\1') |
+                                        list }}"
+
+- name: Set available_ruby_versions
+  ansible.builtin.set_fact:
+    available_ruby_versions: "{{ [available_ruby_base_version] + available_ruby_stream_versions }}"
+
+- name: Re-set ruby_version when it was set to 'stable' or 'base'
+  ansible.builtin.set_fact:
+    ruby_version: '{{ available_ruby_base_version }}'
+  when: ruby_version == 'stable' or ruby_version == 'base'
+
+- name: Re-set ruby_version when it was set to 'latest'
+  ansible.builtin.set_fact:
+    ruby_version: "{{ available_ruby_versions | default([]) | max | default('') }}"
+  when: ruby_version == 'latest'
+
+- name: Validate the requested Ruby version is available
+  ansible.builtin.fail:
+    msg: "Ruby version '{{ ruby_version }}' is not available. Available versions are: {{ available_ruby_versions | join(', ') }} or you may use 'stable', 'latest', or 'base'"
+  when: ruby_version not in available_ruby_versions
+
+- name: Install Ruby AppStream version
+  ansible.builtin.dnf:
+    name: '@ruby:{{ ruby_version }}'
+    state: present
+  become: true
+  when: ruby_version is defined and ruby_version != available_ruby_base_version
+
+- name: Install Ruby
+  ansible.builtin.dnf:
+    name: ruby
+    state: present
+  become: true
