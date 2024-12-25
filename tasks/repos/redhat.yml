@@ -2,62 +2,59 @@
 
 - name: Install prerequisites
   ansible.builtin.dnf:
-    name:
-      - python3-dnf
-    state: present
+    name: python3-dnf
   become: true
 
-- name: Get base Ruby package information
+- name: Get Ruby base package information from the repos
   ansible.builtin.command: dnf info ruby
   register: dnf_ruby_base_package_info
   changed_when: false
 
-- name: Set base Ruby version
+- name: Set the Ruby base package version that is in the repos
   ansible.builtin.set_fact:
-    available_ruby_base_version: "{{ dnf_ruby_base_package_info.stdout |
-                                     regex_search('Version\\s+:\\s+(\\d+\\.\\d+)', '\\1') |
-                                     first }}"
+    repos_ruby_base_version: "{{ dnf_ruby_base_package_info.stdout |
+                                 regex_search('Version\\s+:\\s+(\\d+\\.\\d+)', '\\1') |
+                                 first }}"
 
-- name: Get available Ruby module streams
+- name: Get available Ruby application stream module streams from the repos
   ansible.builtin.command: dnf module list ruby
   register: dnf_ruby_module_streams_list
   changed_when: false
 
-- name: Set available_ruby_stream_versions
+- name: Set the Ruby stream versions that are in the repos
   ansible.builtin.set_fact:
-    available_ruby_stream_versions: "{{ dnf_ruby_module_streams_list.stdout_lines |
-                                        select('match', '^ruby\\s+\\d+\\.\\d+.*$') |
-                                        map('regex_replace', '^ruby\\s+(\\d+\\.\\d+).*$', '\\1') |
-                                        list }}"
+    repos_ruby_stream_versions: "{{ dnf_ruby_module_streams_list.stdout_lines |
+                                    select('match', '^ruby\\s+\\d+\\.\\d+.*$') |
+                                    map('regex_replace', '^ruby\\s+(\\d+\\.\\d+).*$', '\\1') |
+                                    list }}"
 
-- name: Set available_ruby_versions
+- name: Set the Ruby versions that are in the repos
   ansible.builtin.set_fact:
-    available_ruby_versions: "{{ [available_ruby_base_version] + available_ruby_stream_versions }}"
+    repos_ruby_versions: "{{ [repos_ruby_base_version] + repos_ruby_stream_versions }}"
 
-- name: Re-set ruby_version when it was set to 'stable' or 'base'
+- name: Re-set ruby_version when it is set to 'stable' or 'base'
   ansible.builtin.set_fact:
-    ruby_version: '{{ available_ruby_base_version }}'
+    ruby_version: '{{ repos_ruby_base_version }}'
   when: ruby_version == 'stable' or ruby_version == 'base'
 
-- name: Re-set ruby_version when it was set to 'latest'
+- name: Re-set ruby_version when it is set to 'latest'
   ansible.builtin.set_fact:
-    ruby_version: "{{ available_ruby_versions | default([]) | max | default('') }}"
+    ruby_version: "{{ repos_ruby_versions | max }}"
   when: ruby_version == 'latest'
 
-- name: Validate the requested Ruby version is available
+- name: Validate that the requested Ruby version is available
   ansible.builtin.fail:
-    msg: "Ruby version '{{ ruby_version }}' is not available. Available versions are: {{ available_ruby_versions | join(', ') }} or you may use 'stable', 'latest', or 'base'"
-  when: ruby_version not in available_ruby_versions
+    msg: "Ruby version '{{ ruby_version }}' is not available in the repos. The available versions are {{ repos_ruby_versions | join(', ') }}, or you may use 'stable', 'latest', or 'base'."
+  when: ruby_version not in repos_ruby_versions
 
-- name: Install Ruby AppStream version
+- name: Install Ruby application stream version
   ansible.builtin.dnf:
     name: '@ruby:{{ ruby_version }}'
     state: present
   become: true
-  when: ruby_version is defined and ruby_version != available_ruby_base_version
+  when: ruby_version is defined and ruby_version != repos_ruby_base_version
 
 - name: Install Ruby
   ansible.builtin.dnf:
     name: ruby
-    state: present
   become: true
