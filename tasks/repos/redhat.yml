@@ -58,3 +58,11 @@
   ansible.builtin.dnf:
     name: ruby
   become: true
+
+- name: Install build tools
+  ansible.builtin.dnf:
+    name:
+      - '@Development tools'
+      - ruby-devel
+  become: true
+  when: ruby_build_tools is defined and ruby_build_tools == true

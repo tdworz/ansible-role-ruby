@@ -2,3 +2,4 @@
 
 ruby_install_source: 'repos'
 ruby_version: 'stable'
+ruby_build_tools: true

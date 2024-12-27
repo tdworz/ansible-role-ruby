@@ -8,6 +8,7 @@ An Ansible role to install and configure Ruby.
 |:--------------------|:-------:|:--------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ruby_install_source | string  | `repos`  | One of the following: `repos`.                                                                                                                                                                                                                                                           |
 | ruby_version        | string  | `stable` | A semantic version number or keyword. If using a semantic version number, you must use one of the following: just the major version (ie. `3`), the major-minor version (ie. `3.4`), or the major-minor-patch version (ie. `3.4.2`). Allowed keywords are: `latest`, `base`, or `stable`. |
+| ruby_build_tools    | Boolean |   true   | Whether or not to install build tools required by some gems.                                                                                                                                                                                                                             |
 
 #### Installing from Repos
 
