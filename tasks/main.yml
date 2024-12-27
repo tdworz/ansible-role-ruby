@@ -2,5 +2,4 @@
 
 - name: Set up Ruby for the Red Hat OS family
   ansible.builtin.include_tasks: repos/redhat.yml
-  when: ruby_install_method == 'repos' and ansible_os_family == 'RedHat'
-
+  when: ruby_install_source == 'repos' and ansible_os_family == 'RedHat'

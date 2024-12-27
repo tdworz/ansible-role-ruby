@@ -1,4 +1,4 @@
 ---
 
-ruby_install_method: 'repos'
+ruby_install_source: 'repos'
 ruby_version: 'stable'
